@@ -1,2 +1,10 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Exclude development, cache, VCS, and backup files from git archive
+__pycache__/ export-ignore
+*.pyc export-ignore
+.gitignore export-ignore
+.gitattributes export-ignore
+*.bak/ export-ignore
+tools/ export-ignore
