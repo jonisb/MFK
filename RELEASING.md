@@ -4,7 +4,7 @@ Releases are driven by pushing a `v`-prefixed Git tag. The tag is the source of 
 
 ## Release procedure
 
-1. Make sure `master` is clean and pushed.
+1. Check out `master` and make sure it is clean, up to date, and pushed. Cut the tag from the tip of `master` and leave that branch unchanged until the release finishes.
 2. Create and push a version tag:
 
    ```bash
@@ -12,11 +12,13 @@ Releases are driven by pushing a `v`-prefixed Git tag. The tag is the source of 
    git push origin v0.0.2
    ```
 
-3. Pushing a tag matching `v*` triggers `.github/workflows/release.yml`:
-   - strips one leading `v` from the tag (`v0.0.2` -> `0.0.2`) and validates that it is a stable numeric version,
-   - writes the release version into `plugin.video.mfk/addon.xml` inside the archive only,
-   - builds `plugin.video.mfk-<version>.zip` with `plugin.video.mfk/` as the top-level folder inside the zip,
+3. Pushing a tag matching `v*` triggers `.github/workflows/release.yml`. The workflow:
+   - checks out `master` and validates the tag as a leading `v` followed by a stable numeric version (`v0.0.2` -> `0.0.2`),
+   - updates `plugin.video.mfk/addon.xml`, then commits only that file and pushes the bump to `master` (skipping the commit and push if the version is already set),
+   - builds `plugin.video.mfk-<version>.zip` using the committed `addon.xml`, with `plugin.video.mfk/` as the top-level folder,
    - creates or updates the GitHub Release for that tag and attaches the zip as a release asset.
+
+The tag is not moved: it points to the commit **before** the automated bump, so GitHub's tagged source archive does not include that bump. Install the attached addon zip, not the tagged source archive. The workflow needs permission to push to `master`; branch protections or a concurrent push can prevent the bump and stop the release.
 
 ## Local build without CI
 
@@ -26,14 +28,20 @@ Build using the version currently in `plugin.video.mfk/addon.xml`:
 python3 tools/build_release.py
 ```
 
-Build for a specific tag or version override without modifying the working-tree `addon.xml`:
+Tag overrides and local pre-release version overrides both update the working-tree `plugin.video.mfk/addon.xml` by default before building the zip:
 
 ```bash
 python3 tools/build_release.py --tag v0.0.2
 python3 tools/build_release.py --version 0.0.2~beta1 --outdir dist
 ```
 
-By default the zip is written to the repository root and working-tree `plugin.video.mfk/addon.xml` is left untouched. Pass `--write-addon-xml` only if you intentionally want to rewrite `plugin.video.mfk/addon.xml` in place.
+For a dry run that still builds a versioned zip but leaves the working-tree file unchanged, pass `--no-write-addon-xml`:
+
+```bash
+python3 tools/build_release.py --version 0.0.2~beta1 --no-write-addon-xml --outdir dist
+```
+
+Without `--outdir`, the zip is written to the repository root. The old `--write-addon-xml` flag still works but is no longer needed. CI uses `--update-addon-xml-only` to update and commit the version before creating the zip.
 
 ## Version-format rules (Kodi)
 
