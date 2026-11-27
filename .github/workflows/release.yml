@@ -1,0 +1,38 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Build addon release zip
+        id: build
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+        run: |
+          python3 tools/build_release.py --tag "$GITHUB_REF_NAME" --outdir dist
+          version="${GITHUB_REF_NAME#v}"
+          zip_path="dist/plugin.video.mfk-${version}.zip"
+          test -f "$zip_path" || { echo "Error: expected release zip not found: $zip_path" >&2; exit 1; }
+          echo "zip_path=$zip_path" >> "$GITHUB_OUTPUT"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.build.outputs.zip_path }}
+          generate_release_notes: true
