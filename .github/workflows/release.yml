@@ -57,10 +57,13 @@ jobs:
           version="${GITHUB_REF_NAME#v}"
           zip_path="dist/plugin.video.mfk-${version}.zip"
           test -f "$zip_path" || { echo "Error: expected release zip not found: $zip_path" >&2; exit 1; }
+          sha256sum "$zip_path" > "$zip_path.sha256"
           echo "zip_path=$zip_path" >> "$GITHUB_OUTPUT"
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ steps.build.outputs.zip_path }}
+          files: |
+            ${{ steps.build.outputs.zip_path }}
+            ${{ steps.build.outputs.zip_path }}.sha256
           generate_release_notes: true
